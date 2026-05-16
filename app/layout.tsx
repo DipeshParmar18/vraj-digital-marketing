@@ -8,7 +8,8 @@ const navGroups = [
   { label: 'Overview', items: [
     { href: '/', label: 'Dashboard', icon: '▦' },
     { href: '/clients', label: 'Clients', icon: '👥' },
-    { href: '/projects', label: 'Projects & Tasks', icon: '📁' },
+    { href: '/projects', label: 'Projects', icon: '📁' },
+    { href: '/tasks', label: 'Tasks', icon: '✅' },
     { href: '/flags', label: 'Flags & Alerts', icon: '🚩' },
     { href: '/reports', label: 'Reports', icon: '📊' },
   ]},
