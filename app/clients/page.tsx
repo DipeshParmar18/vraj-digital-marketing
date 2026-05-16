@@ -36,7 +36,7 @@ export default function Clients() {
     if (editing) {
       await supabase.from('clients').update(payload).eq('id', editing)
     } else {
-      const { data } = await supabase.from('clients').insert(payload).select().single()
+      const { data, error } = await supabase.from('clients').insert([payload]).select().single()
       clientId = data?.id
 
       // AUTO-CREATE PROJECT for new client
