@@ -80,7 +80,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
           </div>
 
           {/* Nav */}
-          <nav style={{ padding: '0.5rem 0.625rem', flex: 1, overflowY: 'auto' }}>
+          <nav style={{ padding: '0.5rem 0.625rem', flex: 1, overflowY: 'auto', overflowX: 'hidden' }}>
             {navGroups.map(group => (
               <div key={group.label} style={{ marginBottom: '0.75rem' }}>
                 <div style={{ fontSize: '0.58rem', fontWeight: 800, color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '0.1em', padding: '0 0.25rem', marginBottom: '0.15rem' }}>
