@@ -34,6 +34,7 @@ const navGroups = [
   ]},
   { label: 'AI', items: [
     { href: '/ai-content', label: 'AI Content', icon: '🤖' },
+    { href: '/seo-writer', label: 'SEO Article Writer', icon: '✍️' },
     { href: '/competitors', label: 'Competitors', icon: '🌐' },
   ]},
   { label: 'Team', items: [
