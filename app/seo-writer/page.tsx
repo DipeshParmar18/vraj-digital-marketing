@@ -171,91 +171,37 @@ OUTPUT FORMAT:
 • Write ONLY the content — NO preamble like "here is your article" or "I hope this helps"`
   }
 
-  const generate = async () => {
+  const generate = () => {
     setError('')
     if (!title.trim()) { setError('Article title is required.'); return }
     if (!primaryKw.trim()) { setError('Primary keyword is required.'); return }
 
-    setLoading(true)
-    setArticleOutput('')
-    setMetaOutput('')
-    setSchemaOutput('')
-    setActiveTab('output')
+    const prompt = buildPrompt()
 
-    const loadMsgs = [
-      '🔍 Analysing keywords & search intent...',
-      '🏗️ Building EEAT content structure...',
-      '✍️ Writing with active voice & natural flow...',
-      '📊 Injecting stats, data & authority signals...',
-      '🎯 Applying SEO keyword placement...',
-      '❓ Generating FAQ & People Also Ask section...',
-      '🔖 Creating SEO meta tags & schema...',
-      '✅ Finalising & quality-checking article...',
-    ]
-    let mi = 0
-    setLoadMsg(loadMsgs[0])
-    setProgress(5)
-
-    progressRef.current = setInterval(() => {
-      mi = Math.min(mi + 1, loadMsgs.length - 1)
-      setLoadMsg(loadMsgs[mi])
-      setProgress(Math.round((mi + 1) / loadMsgs.length * 88))
-    }, 2500)
-
-    try {
-      const res = await fetch('/api/ai', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          system: 'You are a world-class SEO content strategist and expert human writer with 15+ years of experience. You write like Search Engine Land — clear, honest, direct, and always from genuine expertise. Your writing passes every AI detection tool because it genuinely sounds human.',
-          message: buildPrompt()
-        })
-      })
-
-      const data = await res.json()
-      const full: string = data.content?.[0]?.text || ''
-
-      if (!full || full.startsWith('⚠️')) {
-        setError(full || 'Failed to generate. Please check your API key in environment variables.')
-        setActiveTab('write')
-        return
-      }
-
-      clearInterval(progressRef.current!)
-      setProgress(100)
-
-      const metaSep = full.indexOf('---META---')
-      const schemaSep = full.indexOf('---SCHEMA---')
-
-      const article = metaSep > -1 ? full.substring(0, metaSep).trim() : full.trim()
-      const meta = metaSep > -1 && schemaSep > -1 ? full.substring(metaSep + 10, schemaSep).trim()
-        : metaSep > -1 ? full.substring(metaSep + 10).trim() : ''
-      const schema = schemaSep > -1 ? full.substring(schemaSep + 12).trim() : ''
-
-      setArticleOutput(article)
-      setMetaOutput(meta)
-      setSchemaOutput(schema)
-      setArticleTab('article')
-
-      const entry: HistoryItem = {
-        title: title.trim(),
-        primary: primaryKw.trim(),
-        location: location.trim(),
-        length,
-        template: selectedTmpl,
-        tone,
-        ts: new Date().toLocaleString('en-IN', { day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' }),
-        output: article,
-      }
-      setHistory(prev => [entry, ...prev.slice(0, 19)])
-
-    } catch {
-      clearInterval(progressRef.current!)
-      setError('Connection error. Please try again.')
-      setActiveTab('write')
+    // Save to history
+    const entry: HistoryItem = {
+      title: title.trim(),
+      primary: primaryKw.trim(),
+      location: location.trim(),
+      length,
+      template: selectedTmpl,
+      tone,
+      ts: new Date().toLocaleString('en-IN', { day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' }),
+      output: '',
     }
+    setHistory(prev => [entry, ...prev.slice(0, 19)])
 
-    setLoading(false)
+    // Copy prompt to clipboard
+    navigator.clipboard.writeText(prompt).catch(() => {})
+
+    // Open Claude.ai in new tab with prompt pre-filled
+    const encoded = encodeURIComponent(prompt)
+    const claudeUrl = `https://claude.ai/new?q=${encoded}`
+    window.open(claudeUrl, '_blank')
+
+    // Show confirmation screen
+    setActiveTab('output')
+    setArticleOutput('__SENT__')
   }
 
   const copyOutput = (text: string) => {
@@ -494,106 +440,88 @@ OUTPUT FORMAT:
         {/* ═══ OUTPUT TAB ═══ */}
         {activeTab === 'output' && (
           <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
-            {loading && (
-              <div className="card">
-                <div style={{ fontSize: '0.8rem', color: 'var(--text-secondary)', marginBottom: '0.75rem', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-                  <div className="skeleton" style={{ width: 14, height: 14, borderRadius: '50%' }}></div>
-                  {loadMsg}
-                </div>
-                <div className="progress-bar">
-                  <div className="progress-fill" style={{ width: `${progress}%` }}></div>
-                </div>
-                <div style={{ marginTop: '1rem', display: 'flex', flexDirection: 'column', gap: '0.4rem' }}>
-                  {[90, 75, 85, 60, 70].map((w, i) => (
-                    <div key={i} className="skeleton" style={{ height: 13, width: `${w}%`, borderRadius: 4 }}></div>
-                  ))}
-                </div>
-              </div>
-            )}
 
-            {!loading && articleOutput && (
+            {/* SENT TO CLAUDE CONFIRMATION */}
+            {articleOutput === '__SENT__' && (
               <>
-                {/* SCORECARD */}
-                <div className="card">
-                  <div style={{ fontSize: '0.85rem', fontWeight: 700, marginBottom: '0.875rem', color: 'var(--text-primary)' }}>Content Scorecard</div>
-                  <div className="grid-4" style={{ marginBottom: '0.875rem' }}>
+                <div className="card" style={{ textAlign: 'center', padding: '2.5rem 2rem' }}>
+                  <div style={{ fontSize: '3.5rem', marginBottom: '1rem' }}>🚀</div>
+                  <div style={{ fontSize: '1.1rem', fontWeight: 800, color: 'var(--text-primary)', marginBottom: '0.5rem' }}>
+                    Brief sent to Claude!
+                  </div>
+                  <div style={{ fontSize: '0.82rem', color: 'var(--text-muted)', marginBottom: '1.5rem', lineHeight: 1.6 }}>
+                    Claude has opened in a new tab with your full SEO brief pre-filled.<br />
+                    Your article is being written — 100% free, 100% Claude quality.
+                  </div>
+
+                  {/* Steps */}
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: '0.625rem', marginBottom: '1.75rem', textAlign: 'left', maxWidth: 420, margin: '0 auto 1.75rem' }}>
                     {[
-                      { label: 'Words', val: wordCount.toString(), color: 'var(--accent-blue)' },
-                      { label: 'Read Time', val: `${readTime} min`, color: 'var(--accent-green)' },
-                      { label: 'Headings', val: headings.toString(), color: 'var(--accent-orange)' },
-                      { label: 'Paragraphs', val: paras.toString(), color: 'var(--accent-purple)' },
+                      { step: '1', icon: '✅', text: 'Brief sent — Claude tab opened with your article details' },
+                      { step: '2', icon: '⏳', text: 'Claude is writing your full SEO article right now' },
+                      { step: '3', icon: '📋', text: 'Copy the article from Claude and paste it in your CMS' },
+                      { step: '4', icon: '🔍', text: 'Check with ZeroGPT — it should show 0% AI content' },
                     ].map(s => (
-                      <div key={s.label} style={{ background: 'var(--bg-secondary)', border: '1px solid var(--border)', borderRadius: 9, padding: '0.875rem', textAlign: 'center' }}>
-                        <div style={{ fontSize: '1.5rem', fontWeight: 800, color: s.color, lineHeight: 1, marginBottom: 4 }}>{s.val}</div>
-                        <div style={{ fontSize: '0.68rem', color: 'var(--text-muted)', fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.05em' }}>{s.label}</div>
+                      <div key={s.step} style={{ display: 'flex', alignItems: 'center', gap: '0.875rem', padding: '0.75rem 1rem', background: 'var(--bg-secondary)', borderRadius: 8, border: '1px solid var(--border)' }}>
+                        <div style={{ width: 28, height: 28, borderRadius: '50%', background: 'linear-gradient(135deg, #f97316, #ea580c)', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0, fontSize: '0.75rem', fontWeight: 800, color: '#fff' }}>{s.step}</div>
+                        <div style={{ fontSize: '0.75rem', fontWeight: 500, color: 'var(--text-secondary)' }}>{s.icon} {s.text}</div>
                       </div>
                     ))}
                   </div>
-                  <div style={{ display: 'flex', flexWrap: 'wrap', gap: '0.4rem' }}>
-                    {['✓ Human-written', '✓ SEO optimised', '✓ EEAT aligned', '✓ Active voice', '✓ Answer-based', '✓ Grammar checked'].map(b => (
-                      <span key={b} className="badge badge-green">{b}</span>
-                    ))}
+
+                  <div style={{ display: 'flex', gap: '0.75rem', justifyContent: 'center', flexWrap: 'wrap' }}>
+                    <button className="btn-primary" onClick={() => {
+                      const encoded = encodeURIComponent(buildPrompt())
+                      window.open(`https://claude.ai/new?q=${encoded}`, '_blank')
+                    }}>
+                      🔄 Re-open Claude Tab
+                    </button>
+                    <button className="btn-secondary" onClick={() => { setArticleOutput(''); setActiveTab('write') }}>
+                      ✍️ Write Another Article
+                    </button>
                   </div>
                 </div>
 
-                {/* OUTPUT TABS */}
-                <div className="card" style={{ padding: '0.875rem' }}>
-                  <div style={{ display: 'flex', gap: '0.25rem', marginBottom: '0.875rem' }}>
-                    {(['article', 'meta', 'schema'] as ArticleTab[]).map(t => (
-                      <button key={t} onClick={() => setArticleTab(t)}
-                        style={{ padding: '0.35rem 0.875rem', borderRadius: 6, border: '1px solid var(--border)', cursor: 'pointer', fontFamily: 'inherit', fontSize: '0.75rem', fontWeight: 600, transition: 'all 0.15s',
-                          background: articleTab === t ? 'rgba(249,115,22,0.15)' : 'transparent',
-                          color: articleTab === t ? 'var(--accent-orange)' : 'var(--text-muted)',
-                          borderColor: articleTab === t ? 'var(--accent-orange)' : 'var(--border)' }}>
-                        {t === 'article' ? '📄 Article' : t === 'meta' ? '🔍 SEO Meta' : '🧩 Schema'}
-                      </button>
+                {/* HOW IT WORKS INFO */}
+                <div className="card">
+                  <div style={{ fontSize: '0.85rem', fontWeight: 700, marginBottom: '0.875rem', color: 'var(--text-primary)' }}>💡 Why Claude Chat Instead of In-App?</div>
+                  <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0.625rem' }}>
+                    {[
+                      { icon: "🆓", title: "Completely Free", desc: "No API costs. Claude.ai free plan gives you full article generation at zero cost." },
+                      { icon: "✍️", title: "Best Writing Quality", desc: "Claude writes your articles using full reasoning — same quality as paid tools." },
+                      { icon: "🛡️", title: "Passes AI Detection", desc: "Articles written this way pass ZeroGPT and Originality.ai consistently." },
+                      { icon: "⚡", title: "Full Brief Auto-Filled", desc: "Your keywords, tone, EEAT context, location — everything is pre-loaded for Claude." },
+                    ].map(item => (
+                      <div key={item.title} style={{ padding: '0.875rem', background: 'var(--bg-secondary)', borderRadius: 8, border: '1px solid var(--border)' }}>
+                        <div style={{ fontSize: '1.25rem', marginBottom: '0.375rem' }}>{item.icon}</div>
+                        <div style={{ fontSize: '0.75rem', fontWeight: 700, color: 'var(--text-primary)', marginBottom: '0.25rem' }}>{item.title}</div>
+                        <div style={{ fontSize: '0.7rem', color: 'var(--text-muted)', lineHeight: 1.4 }}>{item.desc}</div>
+                      </div>
                     ))}
-                    <button className="btn-secondary" style={{ marginLeft: 'auto', fontSize: '0.72rem', padding: '0.3rem 0.75rem' }}
-                      onClick={() => copyOutput(articleTab === 'article' ? articleOutput : articleTab === 'meta' ? metaOutput : schemaOutput)}>
-                      📋 Copy
-                    </button>
-                    <button className="btn-secondary" style={{ fontSize: '0.72rem', padding: '0.3rem 0.75rem' }} onClick={() => setActiveTab('write')}>
-                      ✍️ Edit Brief
-                    </button>
                   </div>
-
-                  <div style={{ whiteSpace: 'pre-wrap', fontSize: '0.875rem', lineHeight: 1.8, color: 'var(--text-secondary)', background: 'var(--bg-secondary)', padding: '1.125rem', borderRadius: 8, border: '1px solid var(--border)', minHeight: 300, maxHeight: 600, overflowY: 'auto', fontFamily: 'inherit' }}>
-                    {articleTab === 'article' ? articleOutput : articleTab === 'meta' ? (metaOutput || 'No meta data generated.') : (schemaOutput || 'Schema not requested.')}
-                  </div>
-                </div>
-
-                {/* DOWNLOAD */}
-                <div style={{ display: 'flex', gap: '0.5rem', justifyContent: 'flex-end' }}>
-                  <button className="btn-secondary" onClick={() => {
-                    const full = `=== ARTICLE ===\n\n${articleOutput}\n\n=== SEO META ===\n\n${metaOutput}\n\n=== SCHEMA ===\n\n${schemaOutput}`
-                    const a = document.createElement('a')
-                    a.href = 'data:text/plain;charset=utf-8,' + encodeURIComponent(full)
-                    a.download = `seo-article-${Date.now()}.txt`
-                    a.click()
-                  }}>⬇️ Download .txt</button>
-                  <button className="btn-primary" onClick={() => { setTitle(''); setPrimaryKw(''); setKeywords([]); setActiveTab('write') }}>
-                    ✨ Write New Article
-                  </button>
                 </div>
               </>
             )}
 
-            {!loading && !articleOutput && (
+            {/* EMPTY STATE */}
+            {!articleOutput && (
               <div className="card" style={{ textAlign: 'center', padding: '4rem 2rem' }}>
                 <div style={{ fontSize: '3rem', marginBottom: '1rem' }}>✍️</div>
-                <div style={{ fontSize: '0.875rem', color: 'var(--text-muted)' }}>No article generated yet. Fill in the brief and click Generate.</div>
-                <button className="btn-primary" onClick={() => setActiveTab('write')} style={{ marginTop: '1rem' }}>Go to Write Tab →</button>
+                <div style={{ fontSize: '0.875rem', color: 'var(--text-muted)', marginBottom: '1rem' }}>
+                  Fill in your article brief and click Generate — Claude will write your full SEO article for free.
+                </div>
+                <button className="btn-primary" onClick={() => setActiveTab('write')}>Go to Write Tab →</button>
               </div>
             )}
 
             {/* HISTORY */}
-            {history.length > 0 && !loading && (
+            {history.length > 0 && (
               <div className="card">
                 <div style={{ fontSize: '0.85rem', fontWeight: 700, marginBottom: '0.875rem', color: 'var(--text-primary)' }}>📂 Article History</div>
                 <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem', maxHeight: 220, overflowY: 'auto' }}>
                   {history.map((h, i) => (
-                    <div key={i} onClick={() => { setArticleOutput(h.output); setArticleTab('article') }}
-                      style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '0.625rem 0.875rem', background: 'var(--bg-secondary)', borderRadius: 7, cursor: 'pointer', border: '1px solid var(--border)', transition: 'border-color 0.15s' }}>
+                    <div key={i}
+                      style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '0.625rem 0.875rem', background: 'var(--bg-secondary)', borderRadius: 7, border: '1px solid var(--border)' }}>
                       <div>
                         <div style={{ fontSize: '0.78rem', fontWeight: 600, color: 'var(--text-primary)', marginBottom: 2 }}>{h.title}</div>
                         <div style={{ fontSize: '0.68rem', color: 'var(--text-muted)', display: 'flex', gap: '0.75rem' }}>
