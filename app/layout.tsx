@@ -60,7 +60,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
 
   return (
     <html lang="en">
-      <head><title>Vraj Digital Marketing Suite</title></head>
+      <head><title>Vraj Digital Marketing Suite</title><meta name="version" content="1.1" /></head>
       <body>
         <aside className="sidebar">
           {/* Logo */}
